@@ -1,4 +1,5 @@
-﻿using System.Data.Entity;
+﻿using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Net;
 using System.Web.Mvc;
@@ -10,10 +11,31 @@ namespace MvcMovie.Controllers
     {
         private MovieDBContext db = new MovieDBContext();
 
-        // GET: Movies
-        public ActionResult Index()
+        public ActionResult Index(string movieGenre, string searchString)
         {
-            return View(db.Movies.ToList());
+            List<string> GenreLst = new List<string>();
+
+            IQueryable<string> GenreQry = from d in db.Movies
+                                          orderby d.Genre
+                                          select d.Genre;
+            GenreLst.AddRange(GenreQry.Distinct());
+            ViewBag.movieGenre = new SelectList(GenreLst);
+
+            IQueryable<Movie> movies = from m in db.Movies
+                                       orderby m.ID descending
+                                       select m;
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                movies = movies.Where(m => m.Title.Contains(searchString));
+            }
+
+            if (!string.IsNullOrEmpty(movieGenre))
+            {
+                movies = movies.Where(x => x.Genre == movieGenre);
+            }
+
+
+            return View(movies);
         }
 
         // GET: Movies/Details/5
@@ -42,16 +64,16 @@ namespace MvcMovie.Controllers
         // 詳細については、https://go.microsoft.com/fwlink/?LinkId=317598 を参照してください。
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "ID,Title,ReleaseDate,Genre,Price")] Movie movie)
+        public ActionResult Create([Bind(Include = "ID,Title,ReleaseDate,Genre,Price,Rating")] Movie movie)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                db.Movies.Add(movie);
-                db.SaveChanges();
-                return RedirectToAction("Index");
+                return View(movie);
             }
 
-            return View(movie);
+            db.Movies.Add(movie);
+            db.SaveChanges();
+            return RedirectToAction("Index");
         }
 
         // GET: Movies/Edit/5
@@ -74,15 +96,25 @@ namespace MvcMovie.Controllers
         // 詳細については、https://go.microsoft.com/fwlink/?LinkId=317598 を参照してください。
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "ID,Title,ReleaseDate,Genre,Price")] Movie movie)
+        public ActionResult Edit([Bind(Include = "ID,Title,ReleaseDate,Genre,Price,Rating")] Movie movie)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                db.Entry(movie).State = EntityState.Modified;
-                db.SaveChanges();
-                return RedirectToAction("Index");
+                return View(movie);
             }
-            return View(movie);
+            //db.Entry(movie).State = EntityState.Modified;
+
+            Movie newItem = (from item in db.Movies
+                             where item.ID == movie.ID
+                             select item).FirstOrDefault();
+
+            newItem.Title = movie.Title;
+            newItem.ReleaseDate = movie.ReleaseDate;
+            newItem.Genre = movie.Genre;
+            newItem.Price = movie.Price;
+
+            db.SaveChanges();
+            return RedirectToAction("Index");
         }
 
         // GET: Movies/Delete/5

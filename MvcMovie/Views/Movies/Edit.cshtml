@@ -1,5 +1,4 @@
-﻿
-@model MvcMovie.Models.Movie
+﻿@model MvcMovie.Models.Movie
 
 @{
     ViewBag.Title = "Edit";
@@ -10,7 +9,7 @@
 
 @using (Html.BeginForm())
 {
-    @*@Html.AntiForgeryToken()*@
+    @Html.AntiForgeryToken()
 
     <div class="form-horizontal">
         <h4>Movie</h4>
